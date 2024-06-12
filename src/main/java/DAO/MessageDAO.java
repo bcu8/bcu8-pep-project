@@ -13,9 +13,11 @@ public class MessageDAO {
     //support method to make object from result
     private Message resultToMessage(ResultSet result) throws SQLException
     {
-        return new Message(result.getInt("posted_by"),
+        return new Message(
+        result.getInt("message_id"),
+        result.getInt("posted_by"),
         result.getString("message_text"),
-        result.getInt("time_posted"));
+        result.getLong("time_posted_epoch"));
     }
     
     //returns contents of message table
@@ -77,15 +79,16 @@ public class MessageDAO {
         return null;
     }
 
-    //insert new message into Message table. Return true or false for success or fail
-    public boolean insertMessage(Message message) 
+    //insert new message into Message table. Returns the message inserted into db
+    public Message insertMessage(Message message) 
     {
+        Message insertedMessage = null;
         //get connection
         Connection connection = ConnectionUtil.getConnection();
         try 
         {
             //create "insert" prepared statement
-            String sql = "INSERT INTO Message (posted_by, message_text, time_posted) VALUES (?,?,?);";
+            String sql = "INSERT INTO Message (posted_by, message_text, time_posted_epoch) VALUES (?,?,?);";
             PreparedStatement ps = connection.prepareStatement(sql);
 
             //configure prepared statement parameters
@@ -96,69 +99,82 @@ public class MessageDAO {
             //update database
             ps.executeUpdate();
 
-            //return success
-            return true;
+            //get the row we just inserted
+            ResultSet rs = ps.getGeneratedKeys();
+            
+            //get id of message and set it in the message object to be returned
+            if (rs.next()) {
+                int generatedId = rs.getInt(1);
+                // Retrieve and return the newly inserted message by id
+                insertedMessage = getMessageById(generatedId);
+            }
         }
         //handle exception if it occurs
         catch(SQLException e)
         {
             System.out.println(e.getMessage());
         }
-        //return fail
-        return false;
+        //return result
+        return insertedMessage;
     }
 
     //deletes message with given id from messages table
-    public boolean deleteMessage(int id)
+    public Message deleteMessage(int id)
     {
+        Message deletedMessage = null;
         //get connection
         Connection connection = ConnectionUtil.getConnection();
         try 
         {
+            //create and execute prepared statement to select the message before deletion
+            String selectSql = "SELECT * FROM Message WHERE message_id = ?";
+            PreparedStatement selectPs = connection.prepareStatement(selectSql);
+            selectPs.setInt(1, id);
+            ResultSet rs = selectPs.executeQuery();
+
+            if (rs.next()) {
+                deletedMessage = resultToMessage(rs);
+            }
+            else
+            {
+                return null;
+            }
+            
             //create and execute prepared statement
             String sql = "DELETE FROM Message WHERE message_id = ?;";
             PreparedStatement ps = connection.prepareStatement(sql);
             ps.setInt(1,id);
             ps.executeUpdate();
-
-            //return success
-            return true;
         }
         //handle exception if it occurs
         catch(SQLException e)
         {
             System.out.println(e.getMessage());
         }
-        //return fail
-        return false;
+        //return result
+        return deletedMessage;
     }
 
-    //update message text of given message id
-    public boolean updateMessage(int id, String updateText)
-    {
-        //get connection
+    public Message updateMessage(int id, String updateText) {
+        // Get connection
         Connection connection = ConnectionUtil.getConnection();
-
-        try 
-        {
-            //create and execute prepared statement
-            String sql = "UPDATE Message SET message_text = ? WHERE id = ?;";
+    
+        try {
+            // Create and execute prepared statement to update the message text
+            String sql = "UPDATE Message SET message_text = ? WHERE message_id = ?";
             PreparedStatement ps = connection.prepareStatement(sql);
             ps.setString(1, updateText);
             ps.setInt(2, id);
             ps.executeUpdate();
-
-            //return success
-            return true;
-        }
-        //handle exception if it occurs
-        catch(SQLException e)
-        {
+    
+            return getMessageById(id);
+        } catch (SQLException e) {
+            // Handle exception if it occurs
             System.out.println(e.getMessage());
         }
-            
-        //return fail
-        return false;
+    
+        // Return null if update fails or message not found
+        return null;
     }
 
     //returns list of messages written by specified user
