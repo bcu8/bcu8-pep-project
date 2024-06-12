@@ -82,14 +82,13 @@ public class MessageDAO {
     //insert new message into Message table. Returns the message inserted into db
     public Message insertMessage(Message message) 
     {
-        Message insertedMessage = null;
         //get connection
         Connection connection = ConnectionUtil.getConnection();
         try 
         {
             //create "insert" prepared statement
             String sql = "INSERT INTO Message (posted_by, message_text, time_posted_epoch) VALUES (?,?,?);";
-            PreparedStatement ps = connection.prepareStatement(sql);
+            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
             //configure prepared statement parameters
             ps.setInt(1, message.getPosted_by());
@@ -97,16 +96,26 @@ public class MessageDAO {
             ps.setLong(3, message.getTime_posted_epoch());
 
             //update database
-            ps.executeUpdate();
+            int affectedRows = ps.executeUpdate();
 
-            //get the row we just inserted
-            ResultSet rs = ps.getGeneratedKeys();
+            if (affectedRows == 0) throw new SQLException("Couldnt insert message " + message +" into table.");
             
-            //get id of message and set it in the message object to be returned
-            if (rs.next()) {
+            try {
+                //get the row we just inserted
+                ResultSet rs = ps.getGeneratedKeys();
+            
+                //get id of message and set it in the message object to be returned
+                if (rs.next()) {
                 int generatedId = rs.getInt(1);
-                // Retrieve and return the newly inserted message by id
-                insertedMessage = getMessageById(generatedId);
+                message.setMessage_id(generatedId);
+                return message;
+                }
+                else {
+                    throw new SQLException("Could not get id from newly created message");
+                }
+            }
+            catch(SQLException e) {
+                System.out.println(e.getMessage());
             }
         }
         //handle exception if it occurs
@@ -115,7 +124,7 @@ public class MessageDAO {
             System.out.println(e.getMessage());
         }
         //return result
-        return insertedMessage;
+        return null;
     }
 
     //deletes message with given id from messages table

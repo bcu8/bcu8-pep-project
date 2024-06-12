@@ -120,8 +120,6 @@ public class SocialMediaController {
         //get message from request body
         Message message= context.bodyAsClass(Message.class);
 
-        System.out.println(messageService.getAllMessages());
-        System.out.println(message);
         try{
             //attempt posting message
             message = messageService.postMessage(message);
@@ -216,6 +214,7 @@ public class SocialMediaController {
     {
         Message message= context.bodyAsClass(Message.class);
         System.out.println(messageService.getAllMessages());
+        System.out.println(message);
 
        try{
            //attempt posting message
