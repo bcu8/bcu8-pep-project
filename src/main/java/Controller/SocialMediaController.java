@@ -172,27 +172,19 @@ public class SocialMediaController {
     private void getMessage(Context context)
     {
         Message message = messageService.getMessageById(Integer.parseInt(context.pathParam("message_id")));
-        if (message != null)
-        {
-            context.json(message);
-        }
-        else
-        {
-            context.json("");
-        }
+        
+        // return message if exists, else empty response
+        if (message != null) context.json(message);
+        else context.json("");
     }
 
     private void deleteMessage(Context context)
     {
         Message message = messageService.deleteMessage(Integer.parseInt(context.pathParam("message_id")));
-        if (message != null)
-        {
-            context.json(message);
-        }
-        else
-        {
-            context.json("");
-        }
+        
+        // return message if exists, else empty response
+        if (message != null) context.json(message);
+        else context.json("");
     }
 
     /**
@@ -212,13 +204,14 @@ public class SocialMediaController {
      */
     private void updateMessage(Context context)
     {
+        int messageId = Integer.parseInt(context.pathParam("message_id"));
         Message message= context.bodyAsClass(Message.class);
         System.out.println(messageService.getAllMessages());
         System.out.println(message);
 
        try{
            //attempt posting message
-           message = messageService.updateMessage(message.getMessage_id(), message.getMessage_text());
+           message = messageService.updateMessage(messageId, message.getMessage_text());
        }
        catch (MessageService.MessageException e) {
            //e.getMessage() contains the specific reason the user input was invalid
